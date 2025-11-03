@@ -288,7 +288,8 @@ These changes help model how sensitive each customer group is to stress.
           FROM stress_scenarios_v
           GROUP BY SEGMENT;
           
-<img width="1912" height="1000" alt="Segment Image" src="https://github.com/user-attachments/assets/58981f8c-c48e-4b5f-a79a-baba20bb9b8c" />
+
+<img width="1881" height="974" alt="Stress Scenario" src="https://github.com/user-attachments/assets/3eaa9f5e-0288-432a-a703-57b8298c6f98" />
 
 | **Segment**        | **Base Risk** | **Stressed Risk** | **Observation** |
 | ------------------ | ------------- | ----------------- | --------------- |
