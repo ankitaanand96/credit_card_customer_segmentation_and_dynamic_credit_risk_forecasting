@@ -416,6 +416,8 @@ The model achieved a 60% improvement in risk visibility.
 
 *This means banks can now see early warning signs of risky customer behavior much earlier than before, allowing proactive action before delinquency occurs.*
 
+<img width="1871" height="938" alt="Risk Before and After" src="https://github.com/user-attachments/assets/e209eece-17a1-41c9-a907-d071b0bb2bc1" />
+
 ⚙️ 2️⃣ Reduced Potential NPA Exposure — 25% Decrease
 
 Through stress testing and scenario analysis, we identified Revolvers and Over-Leveraged customers as the most sensitive to financial shocks.
