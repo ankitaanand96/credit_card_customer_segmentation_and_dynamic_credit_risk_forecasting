@@ -42,44 +42,15 @@ Key Gaps Identified:
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-### 💡 3. Business Objective
+### 💡 💡 3. Business Objective
 
-The main goal of this project is to build a data-driven and intelligent decision framework for managing credit card portfolios more effectively in the retail banking sector.
-Instead of relying on traditional and static credit evaluation methods, this framework uses customer behavior analytics to make smarter, faster, and fairer lending decisions.
+To design a data-driven framework that:
 
-1️⃣ **Segment Customers by Credit Behavior** 
+- Segments customers by their credit behavior rather than static demographics.
 
-Banks today mostly segment customers based on income level, age, or CIBIL score.
-But these factors don’t reflect how customers actually use their credit cards after issuance.
+- Simulates stress scenarios to anticipate default risks.
 
-Our framework shifts the focus from demographics to behavioral insights, by tracking:
-
-- Utilization Ratio – how much of their credit limit a customer regularly uses.
-
-- Repayment Discipline – how consistently they pay their dues on time or in full.
-
-- Cash Advance Dependency – how often they rely on cash withdrawals (a sign of liquidity stress).
-
-By analyzing these factors, we grouped customers into meaningful categories — such as Safe High Spenders, Moderate Users, Revolvers, and Over-Leveraged — each representing a unique financial pattern and risk profile.
-This behavioral segmentation helps the bank understand who is safe to grow with and who needs intervention early.
-
-2️⃣ **Simulate Stress Scenarios to Anticipate Default Risks**
-
-The next goal is to make the system predictive, not just descriptive.
-To do this, we conducted a stress test — simulating how each customer segment behaves when the economy faces tough conditions.
-
-For example (according to the RBI BASEL III Guidelines):
-
-- A +200 basis points increase in interest rates (making borrowing more expensive).
-
-- A 15% drop in repayment discipline, mimicking job losses or income pressure.
-
-By applying these stress conditions, the model identifies which customers or segments would struggle first.
-This gives banks early warning signals about potential defaulters, allowing them to take preventive action before risk turns into loss.
-
-3️⃣ **Recommend Dynamic Credit and Interest Policies**
-
-Finally, the project translates analytics into actionable business decisions using a prescriptive rules engine.
+- Recommends dynamic credit and interest policies to improve profitability while reducing NPA exposure.
 
 Instead of applying the same rule to everyone, the model recommends specific actions per customer type:
 
