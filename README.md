@@ -6,6 +6,11 @@
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+[Key Results](https://github.com/ankitaanand96/credit_card_customer_segmentation_and_dynamic_credit_risk_forecasting/blob/main/README.md#-10-key-results)   
+[Industry Impact](https://github.com/ankitaanand96/credit_card_customer_segmentation_and_dynamic_credit_risk_forecasting/blob/main/README.md#-11-industry-impact)
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 ### 🏦 1. Industry Background
 
 The Indian credit card market has seen exponential growth with increasing financial inclusion, digital payments, and e-commerce adoption.
