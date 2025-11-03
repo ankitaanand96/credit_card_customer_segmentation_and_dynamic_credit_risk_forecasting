@@ -147,11 +147,9 @@ This structured flow from understanding to forecasting to action ensures that th
 
 To understand customer behavior holistically, we integrated two complementary datasets:
 
-cc_general.xlsx – Captures transaction-level data such as balance, credit limit, total purchases, cash advances, and payment history.
-→ This reflects how a customer uses their credit card.
+- cc_general.xlsx → Captures transaction-level data such as balance, credit limit, total purchases, cash advances, and payment history. (This reflects how a customer uses their credit card.)
 
-credit_card_demographics.xlsx – Contains profile-level details such as age, income band, and geography.
-→ This provides context about who the customer is.
+- credit_card_demographics.xlsx → Contains profile-level details such as age, income band, and geography. (This provides context about who the customer is.)
 
 By combining these two sources, the analysis links behavioral variables (spending, repayment, credit use) with demographic patterns, forming a complete view of risk and opportunity.
 
@@ -159,14 +157,37 @@ By combining these two sources, the analysis links behavioral variables (spendin
 
 A SQL join was performed on CUST_ID to merge both datasets and calculate critical financial indicators in one view:
 
-          SELECT 
-            a.CUST_ID, b.AGE, b.INCOME_BAND, b.GEO_BUCKET,
-            a.BALANCE, a.CREDIT_LIMIT, a.PURCHASES, a.PAYMENTS, a.MINIMUM_PAYMENTS,
-            (BALANCE / CREDIT_LIMIT) AS UTILIZATION_RATIO,
-            (CASH_ADVANCE / PURCHASES) AS CASH_ADVANCE_DEP,
-            (PAYMENTS / CREDIT_LIMIT) AS REPAYMENT_DISCIPLINE
-          FROM cc_general a
-          JOIN credit_card_demographics b USING (CUST_ID);
+          -- Create a clean, analytics-ready view with safe ratios
+            CREATE OR REPLACE VIEW gold_features_v AS
+            SELECT
+              b.CUST_ID,
+              b.AGE,
+              b.INCOME_BAND,
+              b.GEO_BUCKET,
+              
+              -- Raw financials (cast to DOUBLE for consistent math)
+              CAST(a.BALANCE           AS DOUBLE) AS BALANCE,
+              CAST(a.CREDIT_LIMIT      AS DOUBLE) AS CREDIT_LIMIT,
+              CAST(a.PURCHASES         AS DOUBLE) AS PURCHASES,
+              CAST(a.CASH_ADVANCE      AS DOUBLE) AS CASH_ADVANCE,
+              CAST(a.PAYMENTS          AS DOUBLE) AS PAYMENTS,
+              CAST(a.MINIMUM_PAYMENTS  AS DOUBLE) AS MINIMUM_PAYMENTS,
+             
+              -- Behavioral indicators (safe against NULL / divide-by-zero)
+              ROUND( COALESCE(a.BALANCE,0.0)      / NULLIF(a.CREDIT_LIMIT,0.0) , 4) AS UTILIZATION_RATIO,
+              ROUND( COALESCE(a.CASH_ADVANCE,0.0) / NULLIF(a.PURCHASES,0.0)    , 4) AS CASH_ADVANCE_DEP,
+              
+              ROUND(
+                CASE
+                  WHEN a.PAYMENTS IS NULL OR a.PAYMENTS = 0 THEN 0.0
+                  WHEN a.MINIMUM_PAYMENTS IS NULL THEN COALESCE(a.PAYMENTS,0.0) / NULLIF(a.CREDIT_LIMIT,0.0)
+                  ELSE ( COALESCE(a.PAYMENTS,0.0) - COALESCE(a.MINIMUM_PAYMENTS,0.0) ) / NULLIF(a.PAYMENTS,0.0)
+                END
+             , 4) AS REPAYMENT_DISCIPLINE
+          
+            FROM cc_general a
+            JOIN credit_card_demographics b
+              ON a.CUST_ID = b.CUST_ID;
 
 
 🧹 **Data Quality & Storage**
@@ -205,12 +226,21 @@ Instead of relying on static attributes (like income or CIBIL score), this model
 
 🧠 SQL Logic Behind the Segmentation
 
-          CASE
-            WHEN UTILIZATION_RATIO < 0.40 AND REPAYMENT_DISCIPLINE >= 0.50 THEN 'Safe High Spenders'
-            WHEN UTILIZATION_RATIO BETWEEN 0.40 AND 0.70 THEN 'Moderate Users'
-            WHEN UTILIZATION_RATIO > 0.70 AND REPAYMENT_DISCIPLINE < 0.10 THEN 'Revolvers'
-            ELSE 'Over-Leveraged'
-          END
+            CREATE OR REPLACE VIEW segmentation_v AS
+            SELECT
+              *,
+              CASE
+                WHEN UTILIZATION_RATIO < 0.40 AND COALESCE(REPAYMENT_DISCIPLINE,0) >= 0.50
+                  THEN 'Safe High Spenders'
+                WHEN UTILIZATION_RATIO > 0.90 AND COALESCE(REPAYMENT_DISCIPLINE,0) < 0.05
+                  THEN 'Over-Leveraged'
+                WHEN UTILIZATION_RATIO BETWEEN 0.40 AND 0.70 AND COALESCE(REPAYMENT_DISCIPLINE,0) >= 0.10
+                  THEN 'Moderate Users'
+                WHEN UTILIZATION_RATIO > 0.70 OR COALESCE(REPAYMENT_DISCIPLINE,0) < 0.10
+                  THEN 'Revolvers'
+                ELSE 'Moderate Users'
+              END AS SEGMENT
+            FROM gold_features_v;
 
 This logic classifies each customer into one of four segments based on how responsibly they use and repay credit.
 
@@ -220,6 +250,8 @@ This logic classifies each customer into one of four segments based on how respo
 | **Moderate Users**     | Balanced usage               | Medium Risk    | Watchlist — stable but monitor for shifts         |
 | **Revolvers**          | High usage, partial payments | High Risk      | Credit tightening — potential NPA risk            |
 | **Over-Leveraged**     | Maxed-out, poor repayment    | Critical Risk  | Loss prevention — focus on recovery or outreach   |
+
+<img width="814" height="315" alt="Segment Distribution" src="https://github.com/user-attachments/assets/69a0171e-69e8-4a41-852b-6bdad418708c" />
 
 🎯 **Why This Matters**
 
@@ -255,6 +287,8 @@ These changes help model how sensitive each customer group is to stress.
                  ROUND(AVG(STRESSED_RISK_SCORE),3) AS STRESSED_RISK
           FROM stress_scenarios_v
           GROUP BY SEGMENT;
+          
+<img width="1912" height="1000" alt="Segment Image" src="https://github.com/user-attachments/assets/58981f8c-c48e-4b5f-a79a-baba20bb9b8c" />
 
 | **Segment**        | **Base Risk** | **Stressed Risk** | **Observation** |
 | ------------------ | ------------- | ----------------- | --------------- |
@@ -301,11 +335,33 @@ The engine takes two behavioral inputs:
 
 3. Using these values, a SQL-based decision rule determines the next best action:
 
-          CASE
-            WHEN BASE_UTIL < 0.40 AND BASE_REPAY >= 0.50 THEN 'UPGRADE_LIMIT_APR_CUT'
-            WHEN BASE_UTIL > 0.70 OR BASE_REPAY < 0.10 THEN 'TIGHTEN_LIMIT_APR_HIKE'
-            ELSE 'ASSIST_OUTREACH'
-          END
+              -- Create a view for policy recommendations based on behavioral indicators
+              SELECT
+                CUST_ID, SEGMENT, GEO_BUCKET, INCOME_BAND, BASE_UTIL, BASE_REPAY, STRESSED_UTIL, STRESSED_REPAY, STRESSED_RISK,
+                                      
+              -- Policy Action logic
+              CASE
+                WHEN BASE_UTIL < 0.40 AND BASE_REPAY >= 0.50 THEN 'UPGRADE_LIMIT_APR_CUT'
+                WHEN BASE_UTIL BETWEEN 0.40 AND 0.70 AND BASE_REPAY >= 0.10 THEN 'HOLD_MONITOR'
+                WHEN BASE_UTIL > 0.70 OR BASE_REPAY < 0.10 OR STRESSED_RISK >= 0.70 THEN 'TIGHTEN_LIMIT_APR_HIKE'
+                ELSE 'ASSIST_OUTREACH'
+              END AS ACTION_CODE
+            
+            FROM stress_scenarios_v;
+            
+            -- Simple version of policy action rules
+            SELECT
+              CUST_ID, SEGMENT, GEO_BUCKET, INCOME_BAND, BASE_UTIL, BASE_REPAY, STRESSED_UTIL, STRESSED_REPAY, STRESSED_RISK,
+              CASE
+                WHEN BASE_UTIL < 0.40 AND BASE_REPAY >= 0.50 THEN 'UPGRADE_LIMIT_APR_CUT'
+                WHEN BASE_UTIL BETWEEN 0.40 AND 0.70 AND BASE_REPAY >= 0.10 THEN 'HOLD_MONITOR'
+                WHEN BASE_UTIL > 0.70 OR BASE_REPAY < 0.10 OR STRESSED_RISK >= 0.70 THEN 'TIGHTEN_LIMIT_APR_HIKE'
+              ELSE 'ASSIST_OUTREACH'
+            END AS ACTION_CODE
+
+<img width="1897" height="942" alt="Action Policy Image" src="https://github.com/user-attachments/assets/efbbd494-e21c-4db4-99de-f91c84a343ed" />
+
+<img width="1720" height="835" alt="Action Distribution" src="https://github.com/user-attachments/assets/024a9b72-c6be-42db-9d2d-97c0da3cfe5c" />
 
 🧩 **Business Logic Behind Each Rule**
 
