@@ -1,0 +1,2 @@
+# credit_card_customer_segmentation_and_dynamic_credit_risk_forecasting
+Bridging the Gap Between Static Credit Scoring and Behavioral Intelligence in Retail Banking
