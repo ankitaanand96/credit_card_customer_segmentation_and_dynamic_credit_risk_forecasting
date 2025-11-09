@@ -1,4 +1,4 @@
-# 💳 Credit Card Customer Segmentation & Dynamic Credit Risk Forecasting
+# 💳 Customer Segmentation In Retail Banking Using Big Data
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
